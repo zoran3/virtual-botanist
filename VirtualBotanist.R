@@ -1,0 +1,103 @@
+setwd("~/Dropbox/cstats/virtual-botanist")
+
+# Code to cherry pick the features...commented out only needed to be done once.
+#data2 <- read.csv(file = 'data2.csv', header = T, sep = ',')
+
+#leaves <- data2[, c('leaf', 'numEdges', 'area', 'perimeter', 'aspectRatio', 'rectangularity', 'circularity', 'equiDiameter', 'redMean', 'greenMean', 'blueMean', 'redVar', 'greenVar', 'blueVar')]
+#write.csv(leaves, file = "leaves.csv")
+
+leaves <- read.csv(file = 'leaves.csv', header = T, sep = ',')
+sorted_leaves <- leaves[order(leaves$leaf), ]
+
+# 85 leaves
+N <- 85
+# 85 leaves from 5 different trees
+K <- 5
+# Number of features (dimensions of x)
+d <- 13
+# 5 initial equal mixture
+pi <- rep(0.2,5)
+# 5 initial cluster leaf points
+set.seed(1)
+r <- sample(nrow(sorted_leaves), 5)
+r
+mu <- vector("list", K)
+for (k in 1:K) {
+  mu[[k]] <- t(sorted_leaves[r[k], -c(1,2)])
+}
+# Initialize the covariance matrix of each tree to the covariance of the whole data set.
+cov <- cov(sorted_leaves[, -c(1,2)])
+sigma <- list(cov, cov, cov, cov, cov)
+
+# Initialize the bag of leaves x
+x <- vector("list", N)
+for (i in 1:N) {
+  x[[i]] <- sorted_leaves[i, -c(1,2)]
+}
+
+fuzzyMembership <- function(x, pi, mu, sigma) {
+  weights <- matrix(rep(0, N*K), nrow = N, ncol = K)
+  for (i in 1:N) {
+    denom = 0
+    for (k in 1:K) {
+      denom = denom + pi[k]*mvtnorm::dmvnorm(x[[i]], mu[[k]], sigma[[k]])
+    }
+    for (k in 1:K) {
+      weights[i,k] = (pi[k]*mvtnorm::dmvnorm(x[[i]], mu[[k]], sigma[[k]]))/denom 
+    }
+  }
+  weights
+}
+
+logLikelihood <- function(x, pi, mu, sigma) {
+  sum = 0
+  for (i in 1:N) {
+    inner = 0
+    for (k in 1:K) {
+      inner = inner + pi[k]*mvtnorm::dmvnorm(x[[i]], mu[[k]], sigma[[k]])
+    }    
+    sum = sum + log(inner)
+  }
+  sum
+}
+
+
+for (j in 1:10) {
+  cat("Iteration ", j)
+  # Expectation
+  weights <- fuzzyMembership(x, pi, mu, sigma)
+  
+  # Maximization
+  # Compute new proportions
+  for (k in 1:K) {
+    pi[k] = sum(weights[,k])/N
+  }
+  #pi
+  
+  # Compute new means
+  for (k in 1:K) {
+    sum = rep(0, 13)
+    denom = sum(weights[,k])
+    for (i in 1:N) {
+      sum = sum + weights[i,k]*x[[i]]
+    }
+    mu[[k]] = t(sum/denom)
+  }  
+  
+  # Compute new covariance
+  for (k in 1:K) {
+    sum = matrix(rep(0, 13*13), nrow=13, ncol=13)
+    denom = sum(weights[,k])
+    for (i in 1:N) {
+      M = t(x[[i]] - mu[[k]]) %*% as.matrix(x[[i]] - mu[[k]])
+      sum = sum + weights[i,k]*M
+    }
+    sigma[[k]] = sum/denom
+  }
+  cat("Log Likelihood: ", logLikelihood(x, pi, mu, sigma), '\n')
+}
+w = as.data.frame(weights)
+w$leaf = sorted_leaves[, 2]
+
+write.csv(w, file = "clustered-leaves.csv")
+
