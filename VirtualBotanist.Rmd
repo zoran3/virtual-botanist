@@ -1,0 +1,33 @@
+---
+title: "Virtual Botanist"
+author: "Zoran Ivankovich"
+date: "12/1/2018"
+output: pdf_document
+latex_dependency: amsmath
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/Dropbox/cstats/virtual-botanist")
+```
+
+## 1 Problem 10.1 (a) and (b) - Fit a normal kernel density estimate for X
+
+## a) Use bandwith derived the Sheather-Jones approach, Terrell's maximal smoothing principle.  Also plot the resulting density estimate along with the histogram of the data.  For Sheather-Jones method bandwith use Silverman's Rule of thumb as pilot h0 and the Normal kernel for L to estimate f''.  Then plug in to Equation 10.24 to get h for the final estimate of f.
+
+Equation 10.24
+$$
+  h = \bigg(
+    \frac
+    {R(K)}
+    {n\sigma_{K}^4R(f'')}
+  \bigg)^{\frac{1}{5}} \text{ //}\sigma_K^2\text{ is the variance of K viewing K as density}
+$$
+```{r}
+data2 <- read.csv(file = 'data2.csv', header = T, sep = ',')
+
+leaves <- data2[, c('leaf', 'numEdges', 'area', 'perimeter', 'aspectRatio', 'rectangularity', 'circularity', 'equiDiameter', 'redMean', 'greenMean', 'blueMean', 'redVar', 'greenVar', 'blueVar')]
+write.csv(leaves, file = "leaves.csv")
+```
+
